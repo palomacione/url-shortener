@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template, Response
+from flask import Flask, jsonify, request, redirect
 import dataset
 from algorithm import *
 app = Flask(__name__)
@@ -43,16 +43,19 @@ def post(userId):
         short_url = ''
         [n] = db.query("INSERT INTO urls (url,hits) VALUES (:long_url, 0) RETURNING id", long_url=long_url)
         short_url = encode(n['id'])
-        data = dict(id = n['id'], shortUrl = short_url)
+        data = dict(id = n['id'], shorturl = short_url)
         urls.upsert(data, ['id'])
         result = {'id':"{}".format(n['id']), "hits": 0, "url": long_url, "shortUrl": "http://localhost:5000/urls/{}".format(short_url)}
         return jsonify(result), 201
 
 @app.route("/urls/<id>", methods=["GET"])
 def get_redirect(id):
-        if not urls.find_one(id = str(id)):
-            result = {'':''}
-            return jsonify(result), 404
+    results = urls.find_one(shorturl = str(id))
+    if None:
+        result = {'':''}
+        return jsonify(result), 404
+    else:
+        return redirect(results['url']), 301
 
 
 if __name__ == '__main__':

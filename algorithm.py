@@ -5,9 +5,6 @@ def encode(num, alphabet=BASE62):
     # Arguments:
     # num: The number to encode
     # alphabet: The alphabet to use for encoding, in that case, BASE62
-
-    if num == 0:
-        return alphabet[0]
     arr = []
     base = len(alphabet)
     while num:

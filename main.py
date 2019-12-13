@@ -8,6 +8,8 @@ users = db['users']
 urls = db['urls']
 urls.create_column('url', db.types.text)
 urls.create_column('hits', db.types.integer)
+urls.create_column('user_fk', db.types.integer)
+db.query("ALTER TABLE urls ADD FOREIGN KEY (user_fk) REFERENCES users(id);")
 @app.route("/")
 def main_page():
     return {"hello": "world"}
@@ -35,13 +37,14 @@ def delete(userId):
 
 @app.route("/users/<userId>/urls", methods=["POST"])
 def post(userId):
-    if not users.find_one(username = userId):
+    results = users.find_one(username = userId)
+    if results == None:
         result = {'':''}
         return jsonify(result), 404
     else:
         long_url = request.json["url"]
         short_url = ''
-        [n] = db.query("INSERT INTO urls (url,hits) VALUES (:long_url, 0) RETURNING id", long_url=long_url)
+        [n] = db.query("INSERT INTO urls (url,hits, user_fk) VALUES (:long_url, 0, :user_fk) RETURNING id", long_url=long_url, user_fk= results['id'])
         short_url = encode(n['id'])
         data = dict(id = n['id'], shorturl = short_url)
         urls.upsert(data, ['id'])
@@ -66,7 +69,7 @@ def get_stats_id(id):
         result = {'':''}
         return jsonify(result), 404
     else:
-        result = {'id': results['id'], "hits": results['hits'], "url": results['url'], "shortUrl": results['shorturl']}
+        result = {'id': results['id'], "hits": results['hits'], "url": results['url'], "shortUrl": "http://localhost:5000/urls/{}".format(results['shorturl'])}
         return jsonify(result)
 
 if __name__ == '__main__':

@@ -51,12 +51,23 @@ def post(userId):
 @app.route("/urls/<id>", methods=["GET"])
 def get_redirect(id):
     results = urls.find_one(shorturl = str(id))
-    if None:
+    if results == None:
         result = {'':''}
         return jsonify(result), 404
     else:
+        data = dict(id = results['id'], hits = results['hits'] + 1, shorturl = str(id))
+        urls.update(data, ['id'])
         return redirect(results['url']), 301
 
+@app.route("/stats/<id>", methods=["GET"])
+def get_stats_id(id):
+    results = urls.find_one(shorturl = str(id))
+    if results == None:
+        result = {'':''}
+        return jsonify(result), 404
+    else:
+        result = {'id': results['id'], "hits": results['hits'], "url": results['url'], "shortUrl": results['shorturl']}
+        return jsonify(result)
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -51,16 +51,21 @@ def post(userId):
         result = {'id':"{}".format(n['id']), "hits": 0, "url": long_url, "shortUrl": "http://localhost:5000/urls/{}".format(short_url)}
         return jsonify(result), 201
 
-@app.route("/urls/<id>", methods=["GET"])
+@app.route("/urls/<id>", methods=["GET", "DELETE"])
 def get_redirect(id):
     results = urls.find_one(shorturl = str(id))
     if results == None:
-        result = {'':''}
-        return jsonify(result), 404
+            result = {'':''}
+            return jsonify(result), 404
     else:
-        data = dict(id = results['id'], hits = results['hits'] + 1, shorturl = str(id))
-        urls.update(data, ['id'])
-        return redirect(results['url']), 301
+        if request.method == "GET":
+            data = dict(id = results['id'], hits = results['hits'] + 1, shorturl = str(id))
+            urls.update(data, ['id'])
+            return redirect(results['url']), 301
+        else:
+            urls.delete(shorturl = results['shorturl'])
+            result = {'':''}
+            return jsonify(result)
 
 @app.route("/stats/<id>", methods=["GET"])
 def get_stats_id(id):
@@ -71,6 +76,16 @@ def get_stats_id(id):
     else:
         result = {'id': results['id'], "hits": results['hits'], "url": results['url'], "shortUrl": "http://localhost:5000/urls/{}".format(results['shorturl'])}
         return jsonify(result)
+
+@app.route("/users/<userid>/stats", methods=["GET"])
+def get_stats_user(userid):
+    username_to_id = users.find_one(username = userid)
+    results = urls.find(user_fk = username_to_id['id'])
+    url_list = []
+    for url in results:
+        url_list.append(url)
+    result = {'id': username_to_id['username'], "urls": url_list}
+    return jsonify(result)
 
 if __name__ == '__main__':
     app.run(debug=True)

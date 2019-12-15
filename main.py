@@ -1,9 +1,12 @@
 from flask import Flask, jsonify, request, redirect
 import dataset
+import os
+import markdown
 from algorithm import *
 app = Flask(__name__)
+app.config['JSON_SORT_KEYS'] = False
 
-db = dataset.connect('postgresql://postgres:postgres@localhost:5432/mydatabase')
+db = dataset.connect('postgresql://postgres:@localhost:5432/mydatabase')
 users = db['users']
 urls = db['urls']
 urls.create_column('url', db.types.text)
@@ -12,7 +15,9 @@ urls.create_column('user_fk', db.types.integer)
 db.query("ALTER TABLE urls ADD FOREIGN KEY (user_fk) REFERENCES users(id);")
 @app.route("/")
 def main_page():
-    return {"hello": "world"}
+    with open(os.getcwd() + '/README.md', 'r') as markdown_file:
+        content = markdown_file.read()
+        return markdown.markdown(content)
 
 @app.route("/users", methods=["POST"])
 def add_user():
@@ -79,13 +84,34 @@ def get_stats_id(id):
 
 @app.route("/users/<userid>/stats", methods=["GET"])
 def get_stats_user(userid):
-    username_to_id = users.find_one(username = userid)
-    results = urls.find(user_fk = username_to_id['id'])
-    url_list = []
-    for url in results:
-        url_list.append(url)
-    result = {'id': username_to_id['username'], "urls": url_list}
+    if users.find_one(username = userid) == None:
+        result = {'':''}
+        return jsonify(result), 404
+    else:
+        username_to_id = users.find_one(username = userid)
+        results = db.query("SELECT SUM(hits), COUNT(id) FROM urls WHERE urls.user_fk = {}".format(username_to_id['id']))
+        result_list = []
+        for r in results:
+            result_list.append(r)
+        top10 = db.query("SELECT id, hits, url, shorturl FROM urls WHERE urls.user_fk = {} ORDER BY hits DESC LIMIT 10".format(username_to_id['id']))
+        top10_list = []
+        for url in top10:
+            top10_list.append(url)
+        result = {"hits": result_list[0]['sum'], "urlCount": result_list[0]['count'], "topUrls": top10_list}
+        return jsonify(result)
+
+@app.route("/stats", methods=["GET"])
+def get_stats():
+    results = db.query("SELECT SUM(hits), COUNT(id) FROM urls")
+    result_list = []
+    for r in results:
+        result_list.append(r)
+    top10 = db.query("SELECT id, hits, url, shorturl FROM urls ORDER BY hits DESC LIMIT 10")
+    top10_list = []
+    for url in top10:
+        top10_list.append(url)
+    result = {"hits": result_list[0]['sum'], "urlCount": result_list[0]['count'], "topUrls": top10_list}
     return jsonify(result)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)

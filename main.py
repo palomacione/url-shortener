@@ -5,14 +5,16 @@ import markdown
 from algorithm import *
 app = Flask(__name__)
 app.config['JSON_SORT_KEYS'] = False
-
-db = dataset.connect('postgresql://postgres:@localhost:5432/mydatabase')
-users = db['users']
-urls = db['urls']
+db = dataset.connect('postgresql://postgres:postgres@localhost:5432/my_database')
+users = db.query("CREATE TABLE IF NOT EXISTS public.users (id serial, username text,  CONSTRAINT users_pkey PRIMARY KEY (id))")
+users = db.get_table('users')
+urls = db.query("CREATE TABLE IF NOT EXISTS public.users (id serial ,CONSTRAINT urls_pkey PRIMARY KEY (id))")
+urls = db.get_table('urls')
 urls.create_column('url', db.types.text)
+urls.create_column('shorturl', db.types.text)
 urls.create_column('hits', db.types.integer)
 urls.create_column('user_fk', db.types.integer)
-db.query("ALTER TABLE urls ADD FOREIGN KEY (user_fk) REFERENCES users(id);")
+db.query("ALTER TABLE urls ADD FOREIGN KEY (user_fk) REFERENCES users(id) ON DELETE SET NULL;")
 @app.route("/")
 def main_page():
     with open(os.getcwd() + '/README.md', 'r') as markdown_file:
@@ -66,7 +68,7 @@ def get_redirect(id):
         if request.method == "GET":
             data = dict(id = results['id'], hits = results['hits'] + 1, shorturl = str(id))
             urls.update(data, ['id'])
-            return redirect(results['url']), 301
+            return redirect('https://{}'.format(results['url'])), 301
         else:
             urls.delete(shorturl = results['shorturl'])
             result = {'':''}

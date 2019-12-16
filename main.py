@@ -8,7 +8,7 @@ app.config['JSON_SORT_KEYS'] = False
 db = dataset.connect('postgresql://postgres:postgres@localhost:5432/my_database')
 users = db.query("CREATE TABLE IF NOT EXISTS public.users (id serial, username text,  CONSTRAINT users_pkey PRIMARY KEY (id))")
 users = db.get_table('users')
-urls = db.query("CREATE TABLE IF NOT EXISTS public.users (id serial ,CONSTRAINT urls_pkey PRIMARY KEY (id))")
+urls = db.query("CREATE TABLE IF NOT EXISTS public.users (id serial, CONSTRAINT urls_pkey PRIMARY KEY (id))")
 urls = db.get_table('urls')
 urls.create_column('url', db.types.text)
 urls.create_column('shorturl', db.types.text)
@@ -111,7 +111,9 @@ def get_stats():
     top10 = db.query("SELECT id, hits, url, shorturl FROM urls ORDER BY hits DESC LIMIT 10")
     top10_list = []
     for url in top10:
+        url['shorturl'] = 'http://localhost:5000/urls/{}'.format(url['shorturl'])
         top10_list.append(url)
+
     result = {"hits": result_list[0]['sum'], "urlCount": result_list[0]['count'], "topUrls": top10_list}
     return jsonify(result)
 

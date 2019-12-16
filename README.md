@@ -18,7 +18,7 @@ Faça:
 * `sudo -u postgres -i`
 * `psql`
 * `postgres=# ALTER USER postgres PASSWORD 'postgres';`
-* `postgres=# CREATE DATABASE mydatabase`
+* `postgres=# CREATE DATABASE my_database`
 * `postgres=# \q`
 * `exit `
 
